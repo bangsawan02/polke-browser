@@ -1,0 +1,6 @@
+{
+  "name": "Secure Browser",
+  "description": "Android web browser featuring automated ad blocking, custom Tampermonkey script execution, tab and bookmark sync, local encryption, and adaptive dark mode.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

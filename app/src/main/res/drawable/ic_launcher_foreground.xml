@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <!-- Outer Cyber Ring -->
+    <path
+        android:fillColor="#00E5FF"
+        android:pathData="M50,15 A35,35 0 1,1 49.9,15 Z M50,22 A28,28 0 1,0 50.1,22 Z" />
+    <!-- Center Shield -->
+    <path
+        android:fillColor="#D500F9"
+        android:pathData="M50,30 L65,35 L65,55 C65,68 50,75 50,75 C50,75 35,68 35,55 L35,35 Z" />
+    <!-- Inner Globe Core -->
+    <path
+        android:fillColor="#00E5FF"
+        android:pathData="M50,42 A8,8 0 1,1 49.9,42 Z" />
+</vector>
