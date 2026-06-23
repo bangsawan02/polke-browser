@@ -568,7 +568,41 @@ fun isUrlScriptMatched(pattern: String, url: String): Boolean {
     val cleanPattern = pattern.trim().lowercase()
     if (cleanPattern == "*" || cleanPattern == "*://*/*" || cleanPattern.isEmpty()) return true
     val cleanUrl = url.lowercase()
-    return cleanUrl.contains(cleanPattern) || cleanPattern.contains(cleanUrl)
+    
+    val parts = if (cleanPattern.contains(",")) {
+        cleanPattern.split(",").map { it.trim() }
+    } else {
+        listOf(cleanPattern)
+    }
+
+    return parts.any { part ->
+        if (part == "*" || part == "*://*/*" || part.isEmpty()) {
+            true
+        } else {
+            // Convert wildcard pattern like *youtube.com* to regex
+            // Safely escape regex characters then map * to .*
+            val escaped = part
+                .replace("\\", "\\\\")
+                .replace(".", "\\.")
+                .replace("?", "\\?")
+                .replace("+", "\\+")
+                .replace("[", "\\[")
+                .replace("]", "\\]")
+                .replace("(", "\\(")
+                .replace(")", "\\)")
+                .replace("^", "\\^")
+                .replace("$", "\\$")
+                .replace("|", "\\|")
+                .replace("{", "\\{")
+                .replace("}", "\\}")
+                .replace("*", ".*")
+            try {
+                cleanUrl.matches(Regex(escaped)) || cleanUrl.contains(part)
+            } catch (e: Exception) {
+                cleanUrl.contains(part)
+            }
+        }
+    }
 }
 
 @Composable
