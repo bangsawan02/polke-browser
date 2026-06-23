@@ -17,6 +17,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -101,7 +103,11 @@ fun BrowserScreen(
             try {
                 val activity = context as? android.app.Activity
                 activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-                activity?.window?.decorView?.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_VISIBLE
+                val window = activity?.window
+                if (window != null) {
+                    val windowInsetsController = androidx.core.view.WindowCompat.getInsetsController(window, window.decorView)
+                    windowInsetsController.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -258,7 +264,7 @@ fun BrowserScreen(
                 // Loading progress indicator
                 if (isLoading) {
                     LinearProgressIndicator(
-                        progress = webProgress,
+                        progress = { webProgress },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(2.dp),
@@ -289,7 +295,7 @@ fun BrowserScreen(
                         enabled = webViewInstance?.canGoBack() == true
                     ) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Kembali",
                             tint = if (webViewInstance?.canGoBack() == true) CyberCyan else SoftGrey
                         )
@@ -300,7 +306,7 @@ fun BrowserScreen(
                         enabled = webViewInstance?.canGoForward() == true
                     ) {
                         Icon(
-                            imageVector = Icons.Default.ArrowForward,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                             contentDescription = "Maju",
                             tint = if (webViewInstance?.canGoForward() == true) CyberCyan else SoftGrey
                         )
@@ -407,7 +413,7 @@ fun BrowserScreen(
                                 }
                             )
 
-                            Divider(color = MidnightBackground)
+                            HorizontalDivider(color = MidnightBackground)
 
                             DropdownMenuItem(
                                 text = { 
@@ -476,7 +482,6 @@ fun BrowserScreen(
                                     settings.apply {
                                         javaScriptEnabled = true
                                         domStorageEnabled = true
-                                        databaseEnabled = true
                                         useWideViewPort = true
                                         loadWithOverviewMode = true
                                         mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
@@ -603,11 +608,12 @@ fun BrowserScreen(
                                     try {
                                         val activity = context as? android.app.Activity
                                         activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
-                                        activity?.window?.decorView?.systemUiVisibility = (
-                                            android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or
-                                            android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-                                            android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                                        )
+                                        val window = activity?.window
+                                        if (window != null) {
+                                            val windowInsetsController = androidx.core.view.WindowCompat.getInsetsController(window, window.decorView)
+                                            windowInsetsController.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                                            windowInsetsController.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+                                        }
                                     } catch (e: Exception) {
                                         e.printStackTrace()
                                     }
@@ -619,7 +625,11 @@ fun BrowserScreen(
                                     try {
                                         val activity = context as? android.app.Activity
                                         activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-                                        activity?.window?.decorView?.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_VISIBLE
+                                        val window = activity?.window
+                                        if (window != null) {
+                                            val windowInsetsController = androidx.core.view.WindowCompat.getInsetsController(window, window.decorView)
+                                            windowInsetsController.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+                                        }
                                     } catch (e: Exception) {
                                         e.printStackTrace()
                                     }

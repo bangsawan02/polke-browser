@@ -11,6 +11,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -57,7 +60,7 @@ fun AccountScreen(
                 title = { Text("Akun & Pengaturan", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Kembali")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -169,7 +172,7 @@ fun AccountScreen(
                                     Text("Masuk Cepat Google", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = CleanWhite)
                                     Text("telokuh@gmail.com", fontSize = 12.sp, color = CyberCyan)
                                 }
-                                Icon(Icons.Default.ArrowForward, contentDescription = null, tint = CyberCyan, modifier = Modifier.size(16.dp))
+                                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = CyberCyan, modifier = Modifier.size(16.dp))
                             }
                         }
 
@@ -311,7 +314,7 @@ fun AccountScreen(
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
-                        Divider(color = MidnightSurfaceCard)
+                        HorizontalDivider(color = MidnightSurfaceCard)
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Text("Parameter Sinkronisasi", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = CyberCyan)
@@ -422,7 +425,7 @@ fun AccountScreen(
                             border = BorderStroke(1.dp, Color.Red),
                             shape = RoundedCornerShape(22.dp)
                         ) {
-                            Icon(imageVector = Icons.Default.Logout, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(imageVector = Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Logout Akun Google")
                         }
@@ -492,7 +495,7 @@ fun AccountScreen(
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
-                    Divider(color = MidnightSurfaceCard)
+                    HorizontalDivider(color = MidnightSurfaceCard)
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // h264ify Switch Option
@@ -526,7 +529,7 @@ fun AccountScreen(
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
-                    Divider(color = MidnightSurfaceCard)
+                    HorizontalDivider(color = MidnightSurfaceCard)
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // Cloud Secure DNS IP / Resolver selection

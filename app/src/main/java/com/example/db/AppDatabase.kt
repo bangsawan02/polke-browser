@@ -33,7 +33,7 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                 // Use fallback to destructive migration for safety in rapid builds,
                 // but for simple models we don't have migrations yet.
-                .fallbackToDestructiveMigration()
+                .fallbackToDestructiveMigration(dropAllTables = true)
                 .build()
                 INSTANCE = instance
                 instance
