@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.adblock.AdBlocker
 import com.example.crypto.CryptoHelper
 import com.example.db.*
+import com.example.extensions.ExtensionManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -159,6 +160,20 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
     var authError by mutableStateOf<String?>(null)
     var authSuccessMsg by mutableStateOf<String?>(null)
 
+    // --- NATIVE EXTENSION SYSTEM ---
+    val extensionManager by lazy { ExtensionManager(getApplication()) }
+    var nativeExtensionsList by mutableStateOf(emptyList<com.example.extensions.BrowserExtension>())
+        private set
+
+    fun refreshNativeExtensions() {
+        nativeExtensionsList = extensionManager.extensions.toList()
+    }
+
+    fun toggleNativeExtension(id: String) {
+        extensionManager.toggleExtension(id)
+        refreshNativeExtensions()
+    }
+
     val webViewCache = mutableMapOf<Long, android.webkit.WebView>()
 
     fun removeWebView(tabId: Long) {
@@ -171,6 +186,7 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
         restoreLoggedInUser()
         seedDefaultScriptsIfNeeded()
         seedDefaultShortcutsIfNeeded()
+        refreshNativeExtensions()
     }
 
     private fun seedDefaultShortcutsIfNeeded() {

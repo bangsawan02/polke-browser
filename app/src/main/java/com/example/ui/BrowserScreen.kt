@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.adblock.AdBlocker
 import com.example.db.Tab
@@ -60,6 +62,9 @@ fun BrowserScreen(
     var pageTitle by remember { mutableStateOf("Web Browser") }
     var webProgress by remember { mutableStateOf(0f) }
     var isLoading by remember { mutableStateOf(false) }
+    
+    var customView by remember { mutableStateOf<android.view.View?>(null) }
+    var customViewCallback by remember { mutableStateOf<WebChromeClient.CustomViewCallback?>(null) }
     
     var isMenuExpanded by remember { mutableStateOf(false) }
 
@@ -88,11 +93,16 @@ fun BrowserScreen(
     }
 
     // Capture hardware/gesture back press inside WebView history
-    BackHandler(enabled = webViewInstance?.canGoBack() == true) {
-        webViewInstance?.goBack()
+    BackHandler(enabled = customView != null || webViewInstance?.canGoBack() == true) {
+        if (customView != null) {
+            customViewCallback?.onCustomViewHidden()
+        } else {
+            webViewInstance?.goBack()
+        }
     }
 
-    Scaffold(
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -171,18 +181,19 @@ fun BrowserScreen(
                             onSearch = {
                                 isTyping = false
                                 focusManager.clearFocus()
-                                var destination = inputUrl.trim()
-                                if (destination.isNotEmpty()) {
+                                val trimmed = inputUrl.trim()
+                                if (trimmed.isNotEmpty()) {
+                                    var destination = trimmed
                                     if (!destination.startsWith("http://") && !destination.startsWith("https://")) {
                                         if (destination.contains(".") && !destination.contains(" ")) {
                                             destination = "https://$destination"
                                         } else {
-                                            // Search query fallback
                                             destination = "https://www.google.com/search?q=${destination.replace(" ", "+")}"
                                         }
                                     }
                                     inputUrl = destination
                                     viewModel.updateCurrentTabUrl("Situs Baru", destination)
+                                    webViewInstance?.loadUrl(destination)
                                 }
                             }
                         ),
@@ -196,8 +207,16 @@ fun BrowserScreen(
                         },
                         trailingIcon = {
                             if (inputUrl.isNotEmpty()) {
-                                IconButton(onClick = { inputUrl = "" }) {
-                                    Icon(Icons.Default.Clear, contentDescription = "Search", tint = SoftGrey, modifier = Modifier.size(14.dp))
+                                IconButton(
+                                    onClick = { inputUrl = "" },
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Clear,
+                                        contentDescription = "Search",
+                                        tint = SoftGrey,
+                                        modifier = Modifier.size(14.dp)
+                                    )
                                 }
                             }
                         },
@@ -353,11 +372,11 @@ fun BrowserScreen(
                             )
 
                             DropdownMenuItem(
-                                text = { Text("Script Manager", color = CleanWhite) },
-                                leadingIcon = { Icon(Icons.Default.Code, contentDescription = null, tint = CyberCyan) },
+                                text = { Text("Ekstensi Chrome", color = CleanWhite) },
+                                leadingIcon = { Icon(Icons.Default.Extension, contentDescription = null, tint = CyberCyan) },
                                 onClick = {
                                     isMenuExpanded = false
-                                    onNavigateToMenu(ScreenType.SCRIPTS)
+                                    onNavigateToMenu(ScreenType.EXTENSIONS)
                                 }
                             )
 
@@ -437,15 +456,25 @@ fun BrowserScreen(
                                 WebView(context).apply {
                                     webViewInstance = this
                                     
+                                    // Register the secure Javascript ↔ Kotlin communication bridge
+                                    addJavascriptInterface(object {
+                                        @android.webkit.JavascriptInterface
+                                        fun postMessage(message: String) {
+                                            viewModel.extensionManager.onMessageFromPage(message, this@apply)
+                                        }
+                                    }, "PolkeJSBridge")
+                                    
                                     settings.apply {
-                                javaScriptEnabled = true
-                                domStorageEnabled = true
-                                databaseEnabled = true
-                                useWideViewPort = true
-                                loadWithOverviewMode = true
-                                mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                                cacheMode = WebSettings.LOAD_DEFAULT
-                            }
+                                        javaScriptEnabled = true
+                                        domStorageEnabled = true
+                                        databaseEnabled = true
+                                        useWideViewPort = true
+                                        loadWithOverviewMode = true
+                                        mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                                        cacheMode = WebSettings.LOAD_DEFAULT
+                                        offscreenPreRaster = true
+                                        mediaPlaybackRequiresUserGesture = false
+                                    }
                             
                             // Apply initial GPU hardware acceleration state
                             if (viewModel.isGpuRenderingEnabled) {
@@ -456,27 +485,28 @@ fun BrowserScreen(
                             
                             webViewClient = object : WebViewClient() {
                                 
-                                // Ad-Blocking Interception logic
                                 override fun shouldInterceptRequest(
                                     view: WebView?,
                                     request: WebResourceRequest?
                                 ): WebResourceResponse? {
                                     if (request == null) return null
-                                    val url = request.url.toString()
                                     
-                                    if (viewModel.isAdBlockEnabled && AdBlocker.isAdRequest(url)) {
-                                        // Record adblock statistics in Main thread
-                                        coroutineScope.launch {
-                                            viewModel.registerAdBlockEvent()
-                                        }
-                                        return AdBlocker.createStubResponse()
+                                    // Let our ExtensionManager handle interception
+                                    val response = viewModel.extensionManager.shouldIntercept(request)
+                                    if (response != null) {
+                                        return response
                                     }
+                                    
                                     return super.shouldInterceptRequest(view, request)
                                 }
 
                                 override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                                     super.onPageStarted(view, url, favicon)
                                     isLoading = true
+                                    
+                                    if (url != null) {
+                                        viewModel.extensionManager.onPageStarted(url)
+                                    }
                                     
                                     // Early injection of h264ify to intercept media source queries instantly
                                     if (viewModel.isH264ifyEnabled) {
@@ -515,6 +545,10 @@ fun BrowserScreen(
                                         pageTitle = view?.title ?: "Web Page"
                                         viewModel.updateCurrentTabUrl(pageTitle, url)
 
+                                        if (view != null) {
+                                            viewModel.extensionManager.onPageFinished(url, view)
+                                        }
+
                                         // --- Injeksi custom h264ify pada halaman selesai dimuat ---
                                         if (viewModel.isH264ifyEnabled) {
                                             val h264ifyJs = """
@@ -542,30 +576,6 @@ fun BrowserScreen(
                                             """.trimIndent()
                                             view?.evaluateJavascript(h264ifyJs, null)
                                         }
-
-                                        // --- Injeksi custom CSS untuk Mode Gelap ---
-                                        if (viewModel.isDarkThemeAuto) {
-                                            val darkCssJs = """
-                                                (function() {
-                                                    const css = '* { background-color: #0E0F15 !important; color: #DBE0E8 !important; border-color: #242735 !important; } a { color: #00E5FF !important; } a:visited { color: #BD00FF !important; } input, textarea, select { background-color: #191B24 !important; color: #FFFFFF !important; border: 1px solid #2F334A !important; } img { opacity: 0.82 !important; filter: contrast(1.1) !important; }';
-                                                    const style = document.createElement('style');
-                                                    style.type = 'text/css';
-                                                    style.appendChild(document.createTextNode(css));
-                                                    document.head.appendChild(style);
-                                                })();
-                                            """.trimIndent()
-                                            view?.evaluateJavascript(darkCssJs, null)
-                                        }
-
-                                        // --- Injeksi custom Tampermonkey Scripts ---
-                                        coroutineScope.launch {
-                                            val activeScripts = viewModel.scriptsState.value.filter { it.isEnabled }
-                                            activeScripts.forEach { script ->
-                                                if (isUrlScriptMatched(script.matchUrl, url)) {
-                                                    view?.evaluateJavascript(script.scriptContent, null)
-                                                }
-                                            }
-                                        }
                                     }
                                 }
                             }
@@ -576,6 +586,16 @@ fun BrowserScreen(
                                     super.onProgressChanged(view, newProgress)
                                     webProgress = newProgress / 100f
                                     isLoading = newProgress < 100
+                                }
+                                override fun onShowCustomView(view: android.view.View?, callback: CustomViewCallback?) {
+                                    super.onShowCustomView(view, callback)
+                                    customView = view
+                                    customViewCallback = callback
+                                }
+                                override fun onHideCustomView() {
+                                    super.onHideCustomView()
+                                    customView = null
+                                    customViewCallback = null
                                 }
                             }
 
@@ -604,6 +624,19 @@ fun BrowserScreen(
             }
         }
     }
+        
+        if (customView != null) {
+            Box(modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+            ) {
+                AndroidView(
+                    modifier = Modifier.fillMaxSize(),
+                    factory = { customView!! }
+                )
+            }
+        }
+    }
 }
 
 /**
@@ -611,7 +644,7 @@ fun BrowserScreen(
  */
 fun isUrlScriptMatched(pattern: String, url: String): Boolean {
     val cleanPattern = pattern.trim().lowercase()
-    if (cleanPattern == "*" || cleanPattern == "*://*/*" || cleanPattern.isEmpty()) return true
+    if (cleanPattern == "*" || cleanPattern == "*://*/*" || cleanPattern == "<all_urls>" || cleanPattern.isEmpty()) return true
     val cleanUrl = url.lowercase()
     
     val parts = if (cleanPattern.contains(",")) {
@@ -621,7 +654,7 @@ fun isUrlScriptMatched(pattern: String, url: String): Boolean {
     }
 
     return parts.any { part ->
-        if (part == "*" || part == "*://*/*" || part.isEmpty()) {
+        if (part == "*" || part == "*://*/*" || part == "<all_urls>" || part.isEmpty()) {
             true
         } else {
             // Convert wildcard pattern like *youtube.com* to regex

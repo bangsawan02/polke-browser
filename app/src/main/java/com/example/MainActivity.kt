@@ -19,6 +19,20 @@ class MainActivity : ComponentActivity() {
         
         // Support Edge-to-Edge display flows
         enableEdgeToEdge()
+
+        // Pre-create WebView JS and Wasm cache directories to eliminate noisy E/chromium opendir errors
+        try {
+            val jsCacheDir = java.io.File(cacheDir, "WebView/Default/HTTP Cache/Code Cache/js")
+            val wasmCacheDir = java.io.File(cacheDir, "WebView/Default/HTTP Cache/Code Cache/wasm")
+            if (!jsCacheDir.exists()) {
+                jsCacheDir.mkdirs()
+            }
+            if (!wasmCacheDir.exists()) {
+                wasmCacheDir.mkdirs()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
         
         setContent {
             val viewModel: BrowserViewModel = viewModel()
@@ -63,8 +77,8 @@ class MainActivity : ComponentActivity() {
                                     onBack = { currentScreen = ScreenType.BROWSER }
                                 )
                             }
-                            ScreenType.SCRIPTS -> {
-                                ScriptManagerScreen(
+                            ScreenType.EXTENSIONS -> {
+                                ExtensionManagerScreen(
                                     viewModel = viewModel,
                                     onBack = { currentScreen = ScreenType.BROWSER }
                                 )
