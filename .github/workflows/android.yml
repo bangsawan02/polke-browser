@@ -1,0 +1,48 @@
+name: Android CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build:
+    name: Build Android Application
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: 'gradle'
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v4
+
+    - name: Create Env Configuration File
+      run: |
+        if [ ! -f .env ]; then
+          cp .env.example .env
+        fi
+
+    - name: Decode Debug Keystore
+      run: |
+        if [ -f debug.keystore.base64 ]; then
+          base64 --decode debug.keystore.base64 > debug.keystore || base64 -d debug.keystore.base64 > debug.keystore
+          echo "Successfully decoded debug.keystore.base64 to debug.keystore"
+        else
+          echo "No debug.keystore.base64 found! Generating a blank one to avoid compile errors..."
+          keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+        fi
+
+    - name: Generate Gradle Wrapper
+      run: gradle wrapper
+
+    - name: Build Application with Gradle
+      run: ./gradlew assembleDebug
