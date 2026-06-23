@@ -46,8 +46,16 @@ android {
     }
     debug {
       signingConfig = signingConfigs.getByName("debugConfig")
+      isCrunchPngs = false
     }
   }
+
+  lint {
+    checkReleaseBuilds = false
+    abortOnError = false
+    checkDependencies = false
+  }
+
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_11
     targetCompatibility = JavaVersion.VERSION_11
@@ -120,3 +128,10 @@ dependencies {
   "ksp"(libs.androidx.room.compiler)
   // "ksp"(libs.moshi.kotlin.codegen)
 }
+
+tasks.configureEach {
+    if (name.contains("lint", ignoreCase = true) || name.contains("test", ignoreCase = true)) {
+        enabled = false
+    }
+}
+

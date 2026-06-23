@@ -96,6 +96,15 @@ fun BrowserScreen(
     BackHandler(enabled = customView != null || webViewInstance?.canGoBack() == true) {
         if (customView != null) {
             customViewCallback?.onCustomViewHidden()
+            customView = null
+            customViewCallback = null
+            try {
+                val activity = context as? android.app.Activity
+                activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                activity?.window?.decorView?.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_VISIBLE
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         } else {
             webViewInstance?.goBack()
         }
@@ -593,7 +602,7 @@ fun BrowserScreen(
                                     customViewCallback = callback
                                     try {
                                         val activity = context as? android.app.Activity
-                                        activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                                        activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
                                         activity?.window?.decorView?.systemUiVisibility = (
                                             android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or
                                             android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
@@ -650,7 +659,10 @@ fun BrowserScreen(
             ) {
                 AndroidView(
                     modifier = Modifier.fillMaxSize(),
-                    factory = { customView!! }
+                    factory = {
+                        (customView?.parent as? android.view.ViewGroup)?.removeView(customView)
+                        customView!!
+                    }
                 )
             }
         }
