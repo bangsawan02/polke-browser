@@ -16,6 +16,31 @@
 # debugging stack traces.
 #-keepattributes SourceFile,LineNumberTable
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Retrofit
+-dontwarn retrofit2.**
+-keep class retrofit2.** { *; }
+
+# OkHttp
+-dontwarn okhttp3.**
+-keep class okhttp3.** { *; }
+-dontwarn okio.**
+
+# Moshi
+-dontwarn com.squareup.moshi.**
+-keep class com.squareup.moshi.** { *; }
+-keep class kotlin.reflect.** { *; }
+
+# Coroutines
+-dontwarn kotlinx.coroutines.**
+
+# App classes
+-keep class com.example.** { *; }
+-keepclassmembers class com.example.** { *; }
+-dontwarn androidx.room.**
+
+# General keep rules for common libraries
+-dontwarn sun.misc.Unsafe
+-dontwarn java.nio.file.**
+-dontwarn org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement
+-dontwarn javax.annotation.**
+-dontwarn kotlin.internal.**
