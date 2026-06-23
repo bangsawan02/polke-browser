@@ -21,9 +21,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         
         setContent {
-            CyberBrowserTheme {
-                val viewModel: BrowserViewModel = viewModel()
-                
+            val viewModel: BrowserViewModel = viewModel()
+            CyberBrowserTheme(darkTheme = viewModel.isDarkThemeAuto) {
                 var currentScreen by remember { mutableStateOf(ScreenType.BROWSER) }
                 
                 // Get active tab URL
@@ -40,6 +39,7 @@ class MainActivity : ComponentActivity() {
                                 BrowserScreen(
                                     viewModel = viewModel,
                                     activeTabUrl = activeTabUrl,
+                                    activeTabId = activeTab?.id ?: -1L,
                                     onNavigateToMenu = { targetScreen ->
                                         currentScreen = targetScreen
                                     }
@@ -71,6 +71,12 @@ class MainActivity : ComponentActivity() {
                             }
                             ScreenType.ACCOUNT -> {
                                 AccountScreen(
+                                    viewModel = viewModel,
+                                    onBack = { currentScreen = ScreenType.BROWSER }
+                                )
+                            }
+                            ScreenType.DOWNLOADS -> {
+                                DownloadScreen(
                                     viewModel = viewModel,
                                     onBack = { currentScreen = ScreenType.BROWSER }
                                 )

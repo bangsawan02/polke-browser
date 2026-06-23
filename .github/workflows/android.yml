@@ -45,10 +45,10 @@ jobs:
       run: gradle wrapper
 
     - name: Build Application with Gradle
-      run: ./gradlew assembleDebug
+      run: ./gradlew assembleRelease
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: secure-browser-apk
-        path: app/build/outputs/apk/debug/*.apk
+        path: app/build/outputs/apk/release/*.apk

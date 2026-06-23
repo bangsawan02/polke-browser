@@ -3,6 +3,7 @@ package com.example.ui
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.webkit.*
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
@@ -22,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -47,6 +49,7 @@ import kotlinx.coroutines.launch
 fun BrowserScreen(
     viewModel: BrowserViewModel,
     activeTabUrl: String,
+    activeTabId: Long,
     onNavigateToMenu: (ScreenType) -> Unit
 ) {
     val context = LocalContext.current
@@ -60,11 +63,27 @@ fun BrowserScreen(
     
     var isMenuExpanded by remember { mutableStateOf(false) }
 
+    var isTyping by remember { mutableStateOf(false) }
+
     // Sync input bar URL with active tab
-    LaunchedEffect(activeTabUrl) {
-        inputUrl = if (activeTabUrl == "cyber://home") "" else activeTabUrl
+    LaunchedEffect(activeTabUrl, activeTabId) {
+        if (!isTyping) {
+            inputUrl = if (activeTabUrl == "cyber://home") "" else activeTabUrl
+        }
         if (activeTabUrl != "cyber://home" && activeTabUrl.isNotBlank()) {
-            webViewInstance?.loadUrl(activeTabUrl)
+            val currentUrl = webViewInstance?.url
+            val orgUrl = webViewInstance?.originalUrl
+            
+            // Only load if the webview is not already showing something similar
+            if (currentUrl != null) {
+               val cUrl = currentUrl.removeSuffix("/")
+               val aUrl = activeTabUrl.removeSuffix("/")
+               if (cUrl != aUrl && orgUrl?.removeSuffix("/") != aUrl) {
+                   webViewInstance?.loadUrl(activeTabUrl)
+               }
+            } else {
+               webViewInstance?.loadUrl(activeTabUrl)
+            }
         }
     }
 
@@ -75,9 +94,9 @@ fun BrowserScreen(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = MidnightBackground,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            Column(modifier = Modifier.background(MidnightSurface)) {
+            Column(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
                 // Top Address Controller Bar
                 Row(
                     modifier = Modifier
@@ -133,19 +152,25 @@ fun BrowserScreen(
                     }
 
                     // Main search / URL input field
+                    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+
                     OutlinedTextField(
                         value = inputUrl,
                         onValueChange = { inputUrl = it },
                         modifier = Modifier
                             .weight(1f)
-                            .height(44.dp),
-                        textStyle = LocalTextStyle.current.copy(fontSize = 13.sp, color = CleanWhite),
+                            .height(44.dp)
+                            .onFocusChanged { isTyping = it.isFocused },
+                        singleLine = true,
+                        textStyle = LocalTextStyle.current.copy(fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface),
                         keyboardOptions = KeyboardOptions(
                             imeAction = ImeAction.Search,
                             autoCorrect = false
                         ),
                         keyboardActions = KeyboardActions(
                             onSearch = {
+                                isTyping = false
+                                focusManager.clearFocus()
                                 var destination = inputUrl.trim()
                                 if (destination.isNotEmpty()) {
                                     if (!destination.startsWith("http://") && !destination.startsWith("https://")) {
@@ -158,7 +183,6 @@ fun BrowserScreen(
                                     }
                                     inputUrl = destination
                                     viewModel.updateCurrentTabUrl("Situs Baru", destination)
-                                    webViewInstance?.loadUrl(destination)
                                 }
                             }
                         ),
@@ -320,6 +344,15 @@ fun BrowserScreen(
                             )
 
                             DropdownMenuItem(
+                                text = { Text("Pengelola Unduhan", color = CleanWhite) },
+                                leadingIcon = { Icon(androidx.compose.material.icons.Icons.Default.Download, contentDescription = null, tint = CyberCyan) },
+                                onClick = {
+                                    isMenuExpanded = false
+                                    onNavigateToMenu(ScreenType.DOWNLOADS)
+                                }
+                            )
+
+                            DropdownMenuItem(
                                 text = { Text("Script Manager", color = CleanWhite) },
                                 leadingIcon = { Icon(Icons.Default.Code, contentDescription = null, tint = CyberCyan) },
                                 onClick = {
@@ -360,7 +393,7 @@ fun BrowserScreen(
                                             checked = viewModel.isDarkThemeAuto,
                                             onCheckedChange = { viewModel.isDarkThemeAuto = it },
                                             colors = SwitchDefaults.colors(
-                                                checkedThumbColor = Color.Black,
+                                                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
                                                 checkedTrackColor = CyberCyan
                                             ),
                                             modifier = Modifier.scale(0.7f)
@@ -396,13 +429,15 @@ fun BrowserScreen(
                     }
                 )
             } else {
-                AndroidView(
-                    modifier = Modifier.fillMaxSize(),
-                    factory = { context ->
-                        WebView(context).apply {
-                            webViewInstance = this
-                            
-                            settings.apply {
+                key(activeTabId) {
+                    AndroidView(
+                        modifier = Modifier.fillMaxSize(),
+                        factory = { context ->
+                            val cachedWebView = viewModel.webViewCache.getOrPut(activeTabId) {
+                                WebView(context).apply {
+                                    webViewInstance = this
+                                    
+                                    settings.apply {
                                 javaScriptEnabled = true
                                 domStorageEnabled = true
                                 databaseEnabled = true
@@ -544,9 +579,18 @@ fun BrowserScreen(
                                 }
                             }
 
+                            setDownloadListener { url, userAgent, contentDisposition, mimetype, contentLength ->
+                                val filename = android.webkit.URLUtil.guessFileName(url, contentDisposition, mimetype)
+                                viewModel.startDownload(url, filename)
+                                Toast.makeText(context, "Mulai Mengunduh $filename", Toast.LENGTH_SHORT).show()
+                            }
+
                             loadUrl(activeTabUrl)
-                        }
-                    },
+                                }
+                            }
+                            (cachedWebView.parent as? android.view.ViewGroup)?.removeView(cachedWebView)
+                            cachedWebView.also { webViewInstance = it }
+                        },
                     update = { webView ->
                         // Dynamically toggle GPU rendering layer on runtime setting changes
                         if (viewModel.isGpuRenderingEnabled) {
@@ -556,6 +600,7 @@ fun BrowserScreen(
                         }
                     }
                 )
+                }
             }
         }
     }
@@ -875,7 +920,7 @@ fun CustomComposeHome(
                             showAddDialog = false
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = CyberCyan, contentColor = Color.Black)
+                    colors = ButtonDefaults.buttonColors(containerColor = CyberCyan, contentColor = MaterialTheme.colorScheme.onPrimary)
                 ) {
                     Text("Tambah", fontWeight = FontWeight.Bold)
                 }

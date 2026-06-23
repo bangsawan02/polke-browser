@@ -102,7 +102,7 @@ fun TabManagerScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = CyberCyan, contentColor = Color.Black),
+                colors = ButtonDefaults.buttonColors(containerColor = CyberCyan, contentColor = MaterialTheme.colorScheme.onPrimary),
                 shape = RoundedCornerShape(25.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = null)

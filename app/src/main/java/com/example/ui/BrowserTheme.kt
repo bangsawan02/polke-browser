@@ -1,39 +1,56 @@
 package com.example.ui
 
+import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 
-// Custom Cyber-Midnight palette
-val MidnightBackground = Color(0xFF090A0E)
-val MidnightSurface = Color(0xFF14161F)
-val MidnightSurfaceCard = Color(0xFF1E212D)
-val CyberCyan = Color(0xFF00E5FF)
-val CyberPurple = Color(0xFFD500F9)
-val SecureGreen = Color(0xFF00E676)
-val SoftGrey = Color(0xFF90A4AE)
-val CleanWhite = Color(0xFFF5F7FA)
+// Map old hardcoded colors to dynamic material colors
+val MidnightBackground: Color
+    @Composable get() = MaterialTheme.colorScheme.background
 
-private val CyanDarkColorScheme = darkColorScheme(
-    primary = CyberCyan,
-    onPrimary = Color.Black,
-    secondary = CyberPurple,
-    onSecondary = Color.White,
-    background = MidnightBackground,
-    onBackground = CleanWhite,
-    surface = MidnightSurface,
-    onSurface = CleanWhite
-)
+val MidnightSurface: Color
+    @Composable get() = MaterialTheme.colorScheme.surface
+
+val MidnightSurfaceCard: Color
+    @Composable get() = MaterialTheme.colorScheme.surfaceVariant
+
+val CyberCyan: Color
+    @Composable get() = MaterialTheme.colorScheme.primary
+
+val CyberPurple: Color
+    @Composable get() = MaterialTheme.colorScheme.secondary
+
+val SecureGreen: Color
+    @Composable get() = Color(0xFF00C853)
+
+val SoftGrey: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
+
+val CleanWhite: Color
+    @Composable get() = MaterialTheme.colorScheme.onBackground
+
 
 @Composable
 fun CyberBrowserTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
+    val colorScheme = when {
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            val context = LocalContext.current
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        }
+        darkTheme -> darkColorScheme()
+        else -> lightColorScheme()
+    }
+
     MaterialTheme(
-        colorScheme = CyanDarkColorScheme,
+        colorScheme = colorScheme,
         content = content
     )
 }

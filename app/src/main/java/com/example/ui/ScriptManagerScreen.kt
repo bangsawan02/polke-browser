@@ -41,6 +41,8 @@ fun ScriptManagerScreen(
     var scriptCode by remember { mutableStateOf("") }
     var addError by remember { mutableStateOf<String?>(null) }
 
+    var selectedTabIndex by remember { mutableStateOf(0) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -51,15 +53,17 @@ fun ScriptManagerScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { 
-                        isAddingScript = !isAddingScript 
-                        addError = null
-                    }) {
-                        Icon(
-                            imageVector = if (isAddingScript) Icons.Default.Close else Icons.Default.Add,
-                            contentDescription = "Tambah Script",
-                            tint = CyberCyan
-                        )
+                    if (selectedTabIndex == 0) {
+                        IconButton(onClick = { 
+                            isAddingScript = !isAddingScript 
+                            addError = null
+                        }) {
+                            Icon(
+                                imageVector = if (isAddingScript) Icons.Default.Close else Icons.Default.Add,
+                                contentDescription = "Tambah Script",
+                                tint = CyberCyan
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -71,8 +75,6 @@ fun ScriptManagerScreen(
         },
         containerColor = MidnightBackground
     ) { padding ->
-        var selectedTabIndex by remember { mutableStateOf(0) }
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -191,7 +193,7 @@ fun ScriptManagerScreen(
                                     addError = null
                                 },
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(containerColor = CyberCyan, contentColor = Color.Black)
+                                colors = ButtonDefaults.buttonColors(containerColor = CyberCyan, contentColor = MaterialTheme.colorScheme.onPrimary)
                             ) {
                                 Text("Simpan Skrip", fontWeight = FontWeight.Bold)
                             }
@@ -320,7 +322,7 @@ fun ScriptItemRow(
                     checked = script.isEnabled,
                     onCheckedChange = { onToggle() },
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.Black,
+                        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
                         checkedTrackColor = CyberCyan,
                         uncheckedThumbColor = SoftGrey,
                         uncheckedTrackColor = MidnightBackground
@@ -442,12 +444,12 @@ fun ChromeExtensionInstaller(viewModel: BrowserViewModel) {
                         viewModel.installChromeExtension(extInputUrl)
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = CyberCyan, contentColor = Color.Black),
+                    colors = ButtonDefaults.buttonColors(containerColor = CyberCyan, contentColor = MaterialTheme.colorScheme.onPrimary),
                     shape = RoundedCornerShape(12.dp),
                     enabled = !isInstalling && extInputUrl.isNotBlank()
                 ) {
                     if (isInstalling) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.Black, strokeWidth = 2.dp)
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
                         Spacer(modifier = Modifier.width(10.dp))
                         Text("Memasang Ekstensi...", fontWeight = FontWeight.Bold)
                     } else {
@@ -563,7 +565,7 @@ fun ChromeExtensionInstaller(viewModel: BrowserViewModel) {
                             extInputUrl = qExt.id
                             viewModel.installChromeExtension(qExt.id)
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = CyberPurple, contentColor = Color.White),
+                        colors = ButtonDefaults.buttonColors(containerColor = CyberPurple, contentColor = MaterialTheme.colorScheme.onSecondary),
                         shape = RoundedCornerShape(8.dp),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                         modifier = Modifier.height(32.dp)

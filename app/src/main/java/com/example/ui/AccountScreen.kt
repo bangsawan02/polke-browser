@@ -183,7 +183,7 @@ fun AccountScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(48.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = MaterialTheme.colorScheme.onTertiaryContainer),
                             shape = RoundedCornerShape(24.dp),
                             border = BorderStroke(1.dp, Color.LightGray)
                         ) {
@@ -233,7 +233,7 @@ fun AccountScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(44.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = CyberCyan, contentColor = Color.Black),
+                            colors = ButtonDefaults.buttonColors(containerColor = CyberCyan, contentColor = MaterialTheme.colorScheme.onPrimary),
                             shape = RoundedCornerShape(22.dp)
                         ) {
                             Text("Hubungkan Akun Custom", fontWeight = FontWeight.Bold)
@@ -298,6 +298,16 @@ fun AccountScreen(
                                     color = SecureGreen
                                 )
                             }
+                        }
+
+                        AnimatedVisibility(visible = authSuccess != null) {
+                            Text(
+                                text = authSuccess ?: "",
+                                color = SecureGreen,
+                                fontSize = 12.sp,
+                                modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                                textAlign = TextAlign.Center
+                            )
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -382,7 +392,7 @@ fun AccountScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(48.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = CyberCyan, contentColor = Color.Black),
+                                colors = ButtonDefaults.buttonColors(containerColor = CyberCyan, contentColor = MaterialTheme.colorScheme.onPrimary),
                                 shape = RoundedCornerShape(24.dp)
                             ) {
                                 Icon(imageVector = Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -473,7 +483,7 @@ fun AccountScreen(
                             checked = viewModel.isGpuRenderingEnabled,
                             onCheckedChange = { viewModel.isGpuRenderingEnabled = it },
                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.Black,
+                                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
                                 checkedTrackColor = CyberCyan,
                                 uncheckedThumbColor = SoftGrey,
                                 uncheckedTrackColor = MidnightSurfaceCard
@@ -507,7 +517,7 @@ fun AccountScreen(
                             checked = viewModel.isH264ifyEnabled,
                             onCheckedChange = { viewModel.isH264ifyEnabled = it },
                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.Black,
+                                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
                                 checkedTrackColor = CyberCyan,
                                 uncheckedThumbColor = SoftGrey,
                                 uncheckedTrackColor = MidnightSurfaceCard

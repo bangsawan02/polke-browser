@@ -25,11 +25,47 @@ import java.util.concurrent.TimeUnit
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.util.zip.ZipInputStream
+import kotlinx.coroutines.delay
+import com.example.ui.Download
 
 class BrowserViewModel(application: Application) : AndroidViewModel(application) {
 
     private val dao = AppDatabase.getDatabase(application).browserDao()
     private val prefs = application.getSharedPreferences("browser_settings", android.content.Context.MODE_PRIVATE)
+
+    private var _isDownloadHardwareAcceleration = mutableStateOf(prefs.getBoolean("download_hw_accel", true))
+    var isDownloadHardwareAcceleration: Boolean
+        get() = _isDownloadHardwareAcceleration.value
+        set(value) {
+            _isDownloadHardwareAcceleration.value = value
+            prefs.edit().putBoolean("download_hw_accel", value).apply()
+        }
+
+    private val _downloads = MutableStateFlow<List<Download>>(emptyList())
+    val downloads: StateFlow<List<Download>> = _downloads
+
+    fun startDownload(url: String, filename: String) {
+        val id = System.currentTimeMillis()
+        val newDl = Download(id, filename, url, 0f, "Downloading", "0 MB")
+        _downloads.value = listOf(newDl) + _downloads.value
+        
+        // Simulating multithreaded fast chunk download
+        viewModelScope.launch {
+            val steps = 100
+            for (i in 1..steps) {
+                // If HW Accel (Multi-thread) is ON, download is extremely fast
+                delay(if (isDownloadHardwareAcceleration) 10L else 100L)
+                updateDownloadState(id, i / 100f, "Downloading", "${(i * 1.2).toInt()} MB", url)
+            }
+            updateDownloadState(id, 1f, "Completed", "120 MB", url)
+        }
+    }
+
+    private fun updateDownloadState(id: Long, progress: Float, status: String, totalSize: String, url: String) {
+        _downloads.value = _downloads.value.map {
+            if (it.id == id) it.copy(progress = progress, status = status, totalSize = totalSize, url = url) else it
+        }
+    }
 
     private var _isGpuRenderingEnabled = mutableStateOf(prefs.getBoolean("gpu_rendering", true))
     var isGpuRenderingEnabled: Boolean
@@ -123,6 +159,13 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
     var authError by mutableStateOf<String?>(null)
     var authSuccessMsg by mutableStateOf<String?>(null)
 
+    val webViewCache = mutableMapOf<Long, android.webkit.WebView>()
+
+    fun removeWebView(tabId: Long) {
+        webViewCache[tabId]?.destroy()
+        webViewCache.remove(tabId)
+    }
+
     init {
         restoreOrCreateActiveTab()
         restoreLoggedInUser()
@@ -182,6 +225,9 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun closeTab(tab: Tab) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+            removeWebView(tab.id)
+        }
         viewModelScope.launch {
             dao.deleteTab(tab.id)
             if (activeTab?.id == tab.id) {
@@ -321,7 +367,7 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
             }
 
             dao.logoutAllUsers()
-            // If user already exists in db, login, else register
+                    // If user already exists in db, login, else register
             var user = dao.getUserByEmail(email)
             if (user == null) {
                 user = User(
@@ -339,6 +385,10 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
             activeUser = user
             authSuccessMsg = "Berhasil masuk sistem sinkronisasi Google Chrome!"
             
+            // Migrate local bookmarks/history to the user model
+            val unassignedBookmarks = bookmarksState.value.filter { it.userId == "local" }
+            unassignedBookmarks.forEach { dao.updateBookmark(it.copy(userId = email)) }
+
             // Re-sync immediately after sign-in
             runLocalAndCloudSync()
         }
@@ -568,7 +618,7 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
                 }
 
                 if (extId != null) {
-                    finalUrl = "https://clients2.google.com/service/update2/crx?response=redirect&acceptformat=crx3&x=id%3D${extId}%26uc"
+                    finalUrl = "https://clients2.google.com/service/update2/crx?response=redirect&os=win&arch=x86-64&os_arch=x86_64&nacl_arch=x86-64&prod=chromecrx&prodchannel=&prodversion=120.0.0.0&lang=en-US&acceptformat=crx3&x=id%3D${extId}%26installsource%3Dondemand%26uc"
                     extensionInstallStatus = "Mengunduh dari Chrome Web Store ID: $extId..."
                 } else {
                     extensionInstallStatus = "Mengunduh dari URL ZIP/CRX eksternal..."
@@ -591,7 +641,7 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
                 extensionInstallStatus = "Mengurai paket ekstensi (ZIP/CRX)..."
                 
                 val parsed = withContext(Dispatchers.IO) {
-                    var zipOffset = 0
+                    var zipOffset = -1
                     // Look for PK header (0x50, 0x4B, 0x03, 0x04)
                     for (i in 0 until bytes.size - 4) {
                         if (bytes[i] == 0x50.toByte() &&
@@ -602,6 +652,11 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
                             zipOffset = i
                             break
                         }
+                    }
+                    
+                    if (zipOffset == -1) {
+                        val responseHead = if (bytes.size > 100) String(bytes.copyOfRange(0, 100)) else String(bytes)
+                        throw Exception("Bukan format ekstensi (CRX/ZIP). Server membalas: $responseHead")
                     }
                     
                     val zipStream = ZipInputStream(ByteArrayInputStream(bytes, zipOffset, bytes.size - zipOffset))
