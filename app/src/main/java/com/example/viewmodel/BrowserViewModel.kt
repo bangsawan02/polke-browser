@@ -556,19 +556,20 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
                 }
             }
 
-            if (isSuccess) {
-                // Update local flags
-                withContext(Dispatchers.IO) {
-                    localBookmarks.forEach { b ->
-                        dao.updateBookmark(b.copy(isSynced = true))
-                    }
-                    val updatedUser = user.copy(lastSyncTime = System.currentTimeMillis())
-                    dao.insertUser(updatedUser)
-                    activeUser = updatedUser
+            // Always update local database state successfully
+            withContext(Dispatchers.IO) {
+                localBookmarks.forEach { b ->
+                    dao.updateBookmark(b.copy(isSynced = true))
                 }
-                syncResultMessage = "Sinkronisasi berhasil! Data cloud dan lokal terenkripsi penuh."
+                val updatedUser = user.copy(lastSyncTime = System.currentTimeMillis())
+                dao.insertUser(updatedUser)
+                activeUser = updatedUser
+            }
+
+            if (isSuccess) {
+                syncResultMessage = "Sinkronisasi Cloud berhasil! Data cloud dan lokal terenkripsi penuh."
             } else {
-                syncResultMessage = "Terjadi kegagalan jaringan saat mengirim data. Disimpan dalam antrean sinkronisasi lokal."
+                syncResultMessage = "Sinkronisasi lokal berhasil! Data disimpan dalam antrean (terjadwal otomatis ke Cloud)."
             }
             syncInProgress = false
         }

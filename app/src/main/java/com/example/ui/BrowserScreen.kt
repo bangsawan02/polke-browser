@@ -591,11 +591,29 @@ fun BrowserScreen(
                                     super.onShowCustomView(view, callback)
                                     customView = view
                                     customViewCallback = callback
+                                    try {
+                                        val activity = context as? android.app.Activity
+                                        activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                                        activity?.window?.decorView?.systemUiVisibility = (
+                                            android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or
+                                            android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                                            android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                                        )
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                    }
                                 }
                                 override fun onHideCustomView() {
                                     super.onHideCustomView()
                                     customView = null
                                     customViewCallback = null
+                                    try {
+                                        val activity = context as? android.app.Activity
+                                        activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                                        activity?.window?.decorView?.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_VISIBLE
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                    }
                                 }
                             }
 

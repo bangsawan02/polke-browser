@@ -8,7 +8,6 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.widget.Toast
-import org.json.JSONArray
 import org.json.JSONObject
 
 class ExtensionManager(private val context: Context) {
@@ -18,15 +17,10 @@ class ExtensionManager(private val context: Context) {
     val extensions = mutableListOf<BrowserExtension>()
 
     init {
-        // 1. Tambah ekstensi bawaan kompilasi Kotlin
-        extensions.add(AdBlockExtension())
-        extensions.add(BlockSiteExtension())
-        extensions.add(DarkThemeExtension())
+        // Tambah ekstensi bawaan kompilasi Kotlin: Hanya uBlock Origin sesuai permintaan
+        extensions.add(UBlockOriginExtension())
 
-        // 2. Muat ekstensi skrip deklaratif dari aset manifes
-        loadAssetsExtensions()
-
-        // 3. Muat status aktifkan/nonaktifkan dari penyimpanan lokal
+        // Muat status aktifkan/nonaktifkan dari penyimpanan lokal
         extensions.forEach { ext ->
             ext.isEnabled = prefs.getBoolean(ext.id, true)
             try {
@@ -34,41 +28,6 @@ class ExtensionManager(private val context: Context) {
             } catch (e: Exception) {
                 e.printStackTrace()
             }
-        }
-    }
-
-    private fun loadAssetsExtensions() {
-        try {
-            val jsonString = context.assets.open("extensions/ext-manifest.json").use { inputStream ->
-                inputStream.bufferedReader().use { it.readText() }
-            }
-            val jsonArray = JSONArray(jsonString)
-            for (i in 0 until jsonArray.length()) {
-                val obj = jsonArray.getJSONObject(i)
-                val id = obj.getString("id")
-                val name = obj.getString("name")
-                val description = obj.getString("description")
-                val iconName = obj.getString("iconName")
-                val script = obj.getString("script")
-                
-                val matchesList = mutableListOf<String>()
-                val matchesArray = obj.getJSONArray("matches")
-                for (j in 0 until matchesArray.length()) {
-                    matchesList.add(matchesArray.getString(j))
-                }
-
-                val ext = AssetScriptExtension(
-                    id = id,
-                    name = name,
-                    description = description,
-                    iconName = iconName,
-                    scriptPath = script,
-                    matches = matchesList
-                )
-                extensions.add(ext)
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
     }
 

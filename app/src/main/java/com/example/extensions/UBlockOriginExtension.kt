@@ -5,10 +5,10 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import com.example.adblock.AdBlocker
 
-class AdBlockExtension : BrowserExtension {
-    override val id = "ad_block_extension"
-    override val name = "Ad-Blocker Pro"
-    override val description = "Secara otomatis memblokir iklan, pelacak, dan pop-up pengalih perhatian dari halaman web untuk pemuatan 2x lebih cepat."
+class UBlockOriginExtension : BrowserExtension {
+    override val id = "ublock_origin_extension"
+    override val name = "uBlock Origin"
+    override val description = "Pemblokir konten efisien yang ramah memori dan CPU untuk memblokir iklan, pelacak, pop-up pengalih perhatian, dan situs berbahaya secara otomatis."
     override val iconName = "block"
     override var isEnabled = true
 
